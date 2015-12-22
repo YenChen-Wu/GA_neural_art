@@ -6,6 +6,8 @@ cmd:option('-style_image', 'examples/inputs/seated-nude.jpg',
 cmd:option('-style_blend_weights', 'nil')
 cmd:option('-content_image', 'examples/inputs/tubingen.jpg',
            'Content target image')
+cmd:option('-init_image', 'examples/inputs/brad_pitt.jpg',
+           'Initial image')
 cmd:option('-image_size', 512, 'Maximum height / width of generated image')
 cmd:option('-gpu', 0, 'Zero-indexed ID of the GPU to use; for CPU mode set -gpu = -1')
 
@@ -37,9 +39,10 @@ cmd:option('-style_layers', 'relu1_1,relu2_1,relu3_1,relu4_1,relu5_1', 'layers f
 
 local params = cmd:parse(arg)
 
+local loadcaffe_wrap = require 'loadcaffe_wrapper'
 require 'neural_style'
 
-
+local content_losses, style_losses = {}, {}
 local function load_cnn()
   if params.gpu >= 0 then
     require 'cutorch'
@@ -108,7 +111,7 @@ local function load_cnn()
   local style_layers = params.style_layers:split(",")
 
   -- Set up the network, inserting style and content loss modules
-  local content_losses, style_losses = {}, {}
+  -- local content_losses, style_losses = {}, {}
   local next_content_idx, next_style_idx = 1, 1
   local net = nn.Sequential()
   if params.tv_weight > 0 then
@@ -218,7 +221,8 @@ end
 
 local function maybe_print(t, loss)
   local verbose = (params.print_iter > 0 and t % params.print_iter == 0)
-  if verbose then
+  --if verbose then
+  if true then
     print(string.format('Iteration %d / %d', t, params.num_iterations))
     for i, loss_module in ipairs(content_losses) do
       print(string.format('  Content %d loss: %f', i, loss_module.loss))
@@ -245,10 +249,9 @@ local function maybe_save(t)
 end
 
 local num_calls = 0
-local function feval(x)
+local function feval(x, net)
   num_calls = num_calls + 1
   net:forward(x)
-  --local grad = net:backward(x, dy)
   local loss = 0
   for _, mod in ipairs(content_losses) do
     loss = loss + mod.loss
@@ -262,3 +265,32 @@ local function feval(x)
   collectgarbage()
   return loss
 end
+
+local function main()
+  local net = load_cnn()
+
+  local image_file = image.load(params.init_image, 3)
+  image_file = image.scale(image_file, params.image_size, 'bilinear')
+  local image_caffe = preprocess(image_file):float()
+
+  -- Initialize the image
+  if params.seed >= 0 then
+    torch.manualSeed(params.seed)
+  end
+  local img = nil
+  if params.init == 'random' then
+    img = torch.randn(image:size()):float():mul(0.001)
+  elseif params.init == 'image' then
+    img = image_caffe:clone():float()
+  else
+    error('Invalid init type')
+  end
+  if params.gpu >= 0 then
+    img = img:cuda()
+  end
+
+  print('==================')
+  print(feval(img, net))
+end
+
+main()
