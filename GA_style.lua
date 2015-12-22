@@ -269,6 +269,8 @@ end
 local function main()
   local net = load_cnn()
 
+  local content_image = image.load(params.content_image, 3)
+  content_image = image.scale(content_image, params.image_size, 'bilinear')
   local image_file = image.load(params.init_image, 3)
   image_file = image.scale(image_file, params.image_size, 'bilinear')
   local image_caffe = preprocess(image_file):float()
@@ -279,7 +281,7 @@ local function main()
   end
   local img = nil
   if params.init == 'random' then
-    img = torch.randn(image:size()):float():mul(0.001)
+    img = torch.randn(content_image:size()):float():mul(0.001)
   elseif params.init == 'image' then
     img = image_caffe:clone():float()
   else
