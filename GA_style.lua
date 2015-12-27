@@ -321,6 +321,26 @@ local function get_mean_f(pop, net)
   return total_f / #pop
 end
 
+local function extended_line_XO(P1,P2)
+  a = torch.rand(2):float():mul(1.25)
+  C1 = P1:mul(a[1]):add(P2:mul(1-a[1]))
+  C2 = P1:mul(a[2]):add(P2:mul(1-a[2]))
+  return {C1,C2}
+end
+
+local function BLX-alpha(P1,P2)
+  
+  --torch.max()
+  t = torch.rand(1)
+  
+end
+
+local function crossover(P1,P2)
+  C =  extended_line_XO(P1,P2)
+  -- C =  BLX-alpha(P1,P2)
+  -- print (C[1])
+end
+
 local function main()
   local net = load_cnn()
 
@@ -365,6 +385,10 @@ local function main()
 
   print('==================')
   print(feval(img, net))
+
+  X1 = torch.Tensor(2, 2):fill(2)
+  X2 = torch.Tensor(2, 2):fill(3)
+  crossover(X1,X2)
 --]]
 end
 
