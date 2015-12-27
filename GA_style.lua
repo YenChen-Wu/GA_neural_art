@@ -259,11 +259,66 @@ local function feval(x, net)
   for _, mod in ipairs(style_losses) do
     loss = loss + mod.loss
   end
-  maybe_print(num_calls, loss)
-  maybe_save(num_calls)
+  --maybe_print(num_calls, loss)
+  --maybe_save(num_calls)
 
   collectgarbage()
   return loss
+end
+
+local function init_population(n_ell, n_init)
+  local population = {}
+  for i = 1, n_init do
+    local chromo = torch.randn(n_ell):float():mul(0.001)
+    if params.gpu >= 0 then
+      chromo = chromo:cuda()
+    end
+    table.insert(population, chromo)
+  end
+
+  return population
+end
+
+local function selection(pop, net)
+  local new_pop, fitnesses = {}, {}
+  local total_f = 0
+  local min_f
+  for _, chromo in ipairs(pop) do
+    table.insert(fitnesses, feval(chromo, net))
+  end
+
+  local s = 2 -- selection pressure
+  for p = 1, #pop do
+    local candidates = torch.randperm(#pop)
+    local winner = candidates[1]
+    for i = 2, s do
+      local challenger = candidates[i]
+      if fitnesses[winner] > fitnesses[challenger] then
+        winner = challenger
+      end
+    end
+    table.insert(new_pop, winner)
+
+    if min_f == nil or min_f > fitnesses[winner] then min_f = fitnesses[winner] end
+    total_f = total_f + fitnesses[winner]
+  end
+
+  print("New mean fitness: "..(total_f / #pop))
+  print("New min fitness: "..min_f)
+  return new_pop
+end
+
+local function get_mean_f(pop, net)
+  local total_f = 0
+  local min_f
+  for _, chromo in ipairs(pop) do
+    local f = feval(chromo, net)
+    total_f = total_f + f
+    if min_f == nil or min_f > f then min_f = f end
+  end
+
+  print(min_f)
+  return total_f / #pop
 end
 
 local function extended_line_XO(P1,P2)
@@ -286,7 +341,6 @@ local function crossover(P1,P2)
   -- print (C[1])
 end
 
-
 local function main()
   local net = load_cnn()
 
@@ -300,6 +354,23 @@ local function main()
   if params.seed >= 0 then
     torch.manualSeed(params.seed)
   end
+
+  local n_ell = content_image:size() -- 3 * w * l
+  local n_init = 1000 -- LOL we are doomed QQ
+  local n_current
+  local n_pc = 1 -- always crossover ... why not?
+  local n_pm = 0
+  local n_max_gen = 10
+  local sele_pressure = 2
+
+  print("Init population...")
+  local population = init_population(n_ell, n_init)
+  print("Get mean fitness...")
+  print(get_mean_f(population, net))
+  print("Selection...")
+  local new_pop = selection(population, net)
+
+--[[
   local img = nil
   if params.init == 'random' then
     img = torch.randn(content_image:size()):float():mul(0.001)
@@ -318,8 +389,7 @@ local function main()
   X1 = torch.Tensor(2, 2):fill(2)
   X2 = torch.Tensor(2, 2):fill(3)
   crossover(X1,X2)
+--]]
 end
-
-
 
 main()
