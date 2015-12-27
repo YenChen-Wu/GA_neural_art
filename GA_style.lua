@@ -266,6 +266,11 @@ local function feval(x, net)
   return loss
 end
 
+local n_ell -- size of chromosone
+local n_init
+local n_current
+local 
+
 local function main()
   local net = load_cnn()
 
