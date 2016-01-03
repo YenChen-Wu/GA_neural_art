@@ -328,17 +328,34 @@ local function extended_line_XO(P1,P2)
   return {C1,C2}
 end
 
-local function BLX-alpha(P1,P2)
+local function BLX_alpha(P1,P2)
+  a = 0.5 -- BLX-0.5
+  s = P1:size()
+  -- P = torch.Tensor(2,s[1],s[2])
+  P = torch.repeatTensor(P1,2,1,1)
+  -- P = torch.cat(P1,P2,1)
+  P[2] = P2
+  max = torch.max(P,1) + torch.eye(s[1],s[2]):mul(a)
+  min = torch.min(P,1) - torch.eye(s[1],s[2]):mul(a)
+  -- print (max)
+  -- print (min)
+  -- idx = torch.rand(s):mul(2):int()
+  mask = torch.ByteTensor(s):bernoulli()
+  -- print (mask)
   
-  --torch.max()
-  t = torch.rand(1)
-  
+  C1 = max:clone()
+  C1:maskedCopy(mask,min)
+  C2 = min:clone()
+  C2:maskedCopy(mask,max)
+  -- print (torch.ne(mask,1))
+  -- print (C1)
+  -- print (C2)
+  return {C1,C2}
 end
 
 local function crossover(P1,P2)
-  C =  extended_line_XO(P1,P2)
-  -- C =  BLX-alpha(P1,P2)
-  -- print (C[1])
+  -- C =  extended_line_XO(P1,P2)
+  C =  BLX_alpha(P1,P2)
 end
 
 local function main()
@@ -386,10 +403,16 @@ local function main()
   print('==================')
   print(feval(img, net))
 
+--]]
+--
+end
+
+local function test()
   X1 = torch.Tensor(2, 2):fill(2)
   X2 = torch.Tensor(2, 2):fill(3)
   crossover(X1,X2)
---]]
 end
 
-main()
+
+-- main()
+test()
