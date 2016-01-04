@@ -332,7 +332,12 @@ local function BLX_alpha(P1,P2)
   a = 0.5 -- BLX-0.5
   s = P1:size()
   -- P = torch.Tensor(2,s[1],s[2])
-  P = torch.repeatTensor(P1,2,1,1)
+  if s:size() == 2 then
+    P = torch.repeatTensor(P1,2,1,1)
+  else
+    P = torch.repeatTensor(P1,2,1)
+  end
+  -- print (s:size())
   -- P = torch.cat(P1,P2,1)
   P[2] = P2
   max = torch.max(P,1)
@@ -413,8 +418,8 @@ local function main()
 end
 
 local function test()
-  X1 = torch.Tensor(2, 2):fill(2)
-  X2 = torch.Tensor(2, 2):fill(3)
+  X1 = torch.Tensor(1, 14):fill(2)
+  X2 = torch.Tensor(1, 14):fill(3)
   crossover(X1,X2)
 end
 
